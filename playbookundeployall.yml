@@ -1,0 +1,8 @@
+---
+- name: "Undeploy repository"
+  hosts: "{{ host }}"
+  gather_facts: False
+  become: true
+  become_user: jboss
+  roles:
+    - undeploy_wild

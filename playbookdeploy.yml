@@ -1,0 +1,28 @@
+---
+- hosts: "{{ host }}"
+  gather_facts: "false"
+  tasks:
+  - include_vars: JbossVault.yml
+
+  - name: "Get stats of Wildfly"
+    stat:
+      path: /opt/wildfly
+    register: user
+
+  - name: "Set password domainadmin stage"
+    set_fact: 
+      domainadmin: "{{ domainadminstage }}"
+    when: deploy_environment == "Stage"
+
+  - name: "Set password domainadmin prod"
+    set_fact: 
+      domainadmin: "{{ domainadminprod }}"
+    when: deploy_environment == "Prod"
+
+  - name: "Install deploy"
+    include_role:
+      name: deploy_wild
+      apply:
+        become: "true"
+        become_method: "sudo"
+        become_user: "{{ user.stat.pw_name }}"
