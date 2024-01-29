@@ -1,0 +1,75 @@
+#!/bin/bash
+
+FORCE_UNDEPLOY=$3
+CONTROLLER_CONNECT="/opt/wildfly/bin/jboss-cli.sh --connect --controller="$2":9990"
+LINK_ARTI=$1
+
+WDIR=/tmp
+
+if type -p java; then
+	echo found java executable in PATH
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
+	echo found java executable in JAVA_HOME
+else
+    echo "no java for user $USER"
+    export JAVA_HOME=/opt/java
+    export PATH=$JAVA_HOME/bin:$PATH
+fi
+
+start_procedure () {
+
+CHECK_LINK_ARTI="$(echo $LINK_ARTI |  tr -cd , | wc -c)"
+if [ "$CHECK_LINK_ARTI" -eq 0 ] ; then
+	LINK_ARTI="$LINK_ARTI"
+	ARTI_NEW="$(basename $LINK_ARTI | tr -d 0-9 | sed 's/\-\.\.\.war//g')"
+	ARTI_NEW_ORI="$(basename $LINK_ARTI)"
+	undeploy_to_wildfly
+else
+	for i in ${LINK_ARTI//,/ }
+	#while IFS="," read link
+	do
+		LINK_ARTI="$i"
+		ARTI_NEW="$(basename $LINK_ARTI | tr -d 0-9 | sed 's/\-\.\.\.war//g')"
+		ARTI_NEW_ORI="$(basename $LINK_ARTI)"
+		undeploy_to_wildfly
+	done
+fi
+
+}
+
+undeploy_to_wildfly () {
+
+$CONTROLLER_CONNECT --command="/server-group=*:read-attribute(name=profile)" | grep address | awk -F '"' '{ print $6}' | while read p
+do
+DEPLOY="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$p" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}'| tr -d 0-9 | sed 's/\-\.\.\.war//g')"
+DEPLOY_ORI="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$p" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}')"
+if [ "$DEPLOY" == "$ARTI_NEW" ] ; then
+	echo "match cluster "$p" with deploy "$ARTI_NEW""
+	echo "start undeploy"
+	if [ "$FORCE_UNDEPLOY" == true ] ; then
+		$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$p"
+		echo "Undeploy has been completed"
+		deploy_to_wildfly $p
+	else
+		$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$p --keep-content"
+		echo "Undeploy has been completed"
+		deploy_to_wildfly $p
+	fi
+else
+	echo "cluster "$p" no matching with deploy "$ARTI_NEW""
+fi
+done
+
+}
+
+deploy_to_wildfly () {
+
+echo "Starting deploy "$ARTI_NEW_ori""
+$CONTROLLER_CONNECT --command="deploy "$WDIR"/"$ARTI_NEW_ORI" --server-groups=$1"
+echo "Deploy "$ARTI_NEW_ORI" on cluster "$1" has been completed"
+echo "Delete deploy to stagin dir"
+rm "$WDIR"/"$ARTI_NEW_ORI"
+
+}
+
+start_procedure

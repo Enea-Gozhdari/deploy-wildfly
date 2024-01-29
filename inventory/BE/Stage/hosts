@@ -1,0 +1,87 @@
+[sito]
+sito01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.69
+
+[sito-new]
+sito01new-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.171
+
+[sito-gioco-new]
+sito-gioco01new-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.141
+
+[ssbt]
+sst01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.31
+
+[ssbt-new]
+sst01new-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.55
+
+[mobile]
+mobile01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.61
+
+[mobile-new]
+mobile01new-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.178
+
+[appbar]
+appbar01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.132
+
+[msaccount-appbar]
+msaccount01-appbar-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.146
+
+[msaccount]
+msaccount01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.92
+
+[refactoring]
+mservices01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.32.90
+
+[euroservice]
+eurservice01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.43
+
+[easy]
+backoffice01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.32.125
+
+[promozioni]
+wildfly-promo01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.22.66
+
+[dashboard]
+wildfly-dash01-be-stage.farm.ladbrokes-be.local  ansible_host=172.28.32.87
+
+[inn-be-ladb-adapter]
+inn-be-ladb-adapter01-stage.farm.ladbrokes-be.local	 ansible_host=172.28.26.41
+
+[inn-be-ladb-fixture-hler]
+inn-be-ladb-fixture-hler01-stage.farm.ladbrokes-be	ansible_host=172.28.32.191
+
+[inn-be-ladb-variation-hler]
+inn-be-ladb-variation-hler01-stage.farm.ladbrokes-be.local	ansible_host=172.28.32.190
+
+[inn-be-ladb-result-hler]
+inn-be-ladb-result-hler01-stage.farm.ladbrokes-be.local	ansible_host=172.28.32.189
+
+[inn-be-ladb-bridge]
+inn-be-ladb-bridge01-stage.farm.ladbrokes-be.local	ansible_host=172.28.32.183
+
+[inn-be-ladb-event-hler]
+inn-be-ladb-event-hler01-stage.farm.eurobet-italia.local ansible_host=172.28.32.185
+
+[inn-be-ladb-console]
+inn-be-ladb-console01-stage.farm.ladbrokes-be.local	ansible_host=172.28.32.184
+
+[virtual:children]
+sito-new
+ssbt
+mobile-new
+
+[wildfly-all:children]
+sito
+sito-new
+sito-gioco-new
+mobile
+mobile-new
+ssbt
+ssbt-new
+appbar
+msaccount-appbar
+msaccount
+euroservice
+refactoring
+easy
+dashboard
+promozioni

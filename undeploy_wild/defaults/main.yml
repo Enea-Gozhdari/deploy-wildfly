@@ -1,0 +1,11 @@
+---
+# defaults file for deploy_wild
+app_repo_url:
+staging_dir: /home/it_mid/playbook/deploy_wildfly
+deploy_dir: /tmp
+artifactory_username: "repo-mid"
+artifactory_password: "APUjYPouKfUm2c1WeYv56ohgHN"
+wildfly_conf_bin: /opt/wildfly/bin
+wildfly_user: jboss
+wildfly_group: jboss
+force_undeploy: true

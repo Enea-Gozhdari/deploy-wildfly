@@ -1,0 +1,13 @@
+- name: start Purge
+  script:
+    cmd: purge_content_repository.sh {{ ansible_host }}
+  args:
+    executable: /bin/bash
+  when: ansible_purge == "true"
+
+- name: start delete
+  script:
+    cmd: delete_old_war_in_cluster.sh {{ ansible_host }}
+  args:
+    executable: /bin/bash
+  when: ansible_delete == "true"

@@ -1,0 +1,71 @@
+---
+# tasks file for deploy_wild
+
+- name: copy script deploy on Stage target server
+  template:
+    src: deploy_wild.j2
+    dest: "{{ wildfly_conf_bin }}/deploy_wild.sh"
+    owner: "{{ wildfly_user }}"
+    group: "{{ wildfly_group }}"
+    mode: 0755
+
+- name: "Create temp download local_staging_area"
+  delegate_to: localhost
+  become: False
+  run_once: True
+  file:
+    path: "{{ staging_dir }}"
+    state: directory
+
+- name: 'Get war from Artifactory'
+  become: yes
+  become_user: root
+  become_method: sudo
+  delegate_to: localhost
+  run_once: True
+  get_url:
+    url: "{{ item }}"
+    dest: '{{ staging_dir }}'
+    username: '{{ artifactory_username }}'
+    password: '{{ artifactory_password }}'
+  with_items:
+    - "{{ app_repo_url.split(',') }}"
+  when: (source_download == "Artifactory")
+
+- name: 'Get war from GitLab'
+  become: yes
+  become_user: root
+  become_method: sudo
+  delegate_to: localhost
+  run_once: True
+  get_url:
+    url: "{{ item }}"
+    dest: "{{ staging_dir }}"
+    headers:
+      PRIVATE-TOKEN: Pcy93UYT5sxPwPNPxPvy
+    timeout: 120
+    validate_certs: no
+  with_items:
+    - "{{ app_repo_url.split(',') }}"
+  when: (source_download == "Gitlab")
+
+- name: Copy new war to remote node server
+  copy:
+    src: "{{ staging_dir }}/"
+    dest: "{{ deploy_dir }}"
+    owner: "{{ wildfly_user }}"
+    group: "{{ wildfly_group }}"
+
+- name: Start procedure to deploy
+  shell:
+    cmd: "{{ wildfly_conf_bin }}/deploy_wild.sh {{ app_repo_url }} {{ ansible_host }} {{ force_undeploy }}"
+  args:
+    executable: /bin/bash
+
+- name: "Clean temp download local_staging_area"
+  delegate_to: localhost
+  become: False
+  run_once: True
+  file:
+    state: absent
+    path: "{{ staging_dir }}"

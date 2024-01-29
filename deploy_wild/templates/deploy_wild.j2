@@ -1,0 +1,158 @@
+#!/bin/bash
+
+FORCE_UNDEPLOY=$3
+CONTROLLER_CONNECT="/opt/wildfly/bin/jboss-cli.sh --connect --controller="$2":9990 --user="domainadmin" --password="{{ domainadmin }}""
+LINK_ARTI=$1
+WILD_VER="$(ls -lrt /opt/wildfly | awk -F '>' '{print $2}'| sed 's/ //')"
+WILD92=wildfly-9.0.2.Final
+WILD91=wildfly-9.0.1.Final
+WILD90=wildfly-9.0.0.Final
+
+WDIR=/tmp
+
+
+if type -p java; then
+	echo found java executable in PATH
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
+	echo found java executable in JAVA_HOME
+else
+    echo "no java for user $USER"
+    export JAVA_HOME=/opt/java
+    export PATH=$JAVA_HOME/bin:$PATH
+fi
+
+
+			
+			
+start_procedure_standalone() {
+
+		PACKAGE_NAME="$(basename $LINK_ARTI | sed 's/-[0-9.]*.war$//')"
+		PACKAGE="$(basename $LINK_ARTI)"
+		PACKAGE_ORI="$($CONTROLLER_CONNECT --command="deployment-info" | egrep "enable|true" | grep "$PACKAGE_NAME" | awk '{ print $1}')"
+		
+		if [ -n "$PACKAGE_ORI" ] 
+		then
+		
+			if [ "$FORCE_UNDEPLOY" == true ] ; then
+				$CONTROLLER_CONNECT --command="undeploy $PACKAGE_ORI "
+				echo "Undeploy $PACKAGE_ORI has been completed without content"
+			else
+				$CONTROLLER_CONNECT --command="undeploy $PACKAGE_ORI  --keep-content"
+				echo "Undeploy $PACKAGE_ORI has been completed with keep content"
+			fi
+		else
+			echo "no package $PACKAGE_NAME found. NO UNDEPLOY"
+	    fi
+		
+		echo "Starting deploy "$PACKAGE""
+		$CONTROLLER_CONNECT --command="deploy "$WDIR"/"$PACKAGE" "
+		echo "Deploy "$PACKAGE" has been completed"
+		if [ "$FORCE_UNDEPLOY" == true ] ; then
+			$CONTROLLER_CONNECT --command="deploy "$WDIR"/"$PACKAGE" "
+			echo "Deploy "$PACKAGE" has been completed"
+		else
+			$CONTROLLER_CONNECT --command="deploy "$WDIR"/"$PACKAGE" --force "
+			echo "Deploy "$PACKAGE" has been completed (forced)"
+		fi		
+		echo "Delete deploy to staging dir"
+		rm "$WDIR"/"$PACKAGE"		
+		
+
+}
+
+start_procedure () {
+
+CHECK_LINK_ARTI="$(echo $LINK_ARTI |  tr -cd , | wc -c)"
+if [ "$CHECK_LINK_ARTI" -eq 0 ] ; then
+	LINK_ARTI="$LINK_ARTI"
+	ARTI_NEW="$(basename $LINK_ARTI | sed 's/-[0-9.]*.war$//')"
+	ARTI_NEW_ORI="$(basename $LINK_ARTI)"
+	undeploy_to_wildfly
+else
+	for i in ${LINK_ARTI//,/ }
+	#while IFS="," read link
+	do
+		LINK_ARTI="$i"
+		ARTI_NEW="$(basename $LINK_ARTI | sed 's/-[0-9.]*.war$//')"
+		ARTI_NEW_ORI="$(basename $LINK_ARTI)"
+		undeploy_to_wildfly
+	done
+fi
+
+}
+
+undeploy_to_wildfly () {
+
+if [ "$WILD_VER" == "$WILD92" ] || [ "$WILD_VER" == "$WILD91" ] || [ "$WILD_VER" == "$WILD90" ] ; then
+	echo "Match version $WILD_VER"
+	CLUSTER="$($CONTROLLER_CONNECT --command="/server-group=*:read-attribute(name=profile)" | grep address | awk -F '"' '{ print $6}')"
+
+	for dep in $CLUSTER 
+	do 
+	DEPLOY="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$dep" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}'| sed 's/-[0-9.]*.war$//')"
+	DEPLOY_ORI="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$dep" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}')"
+	if [ "$DEPLOY" == "$ARTI_NEW" ] ; then
+		echo "match cluster "$dep" with deploy "$ARTI_NEW""
+		echo "start undeploy"
+		if [ "$FORCE_UNDEPLOY" == true ] ; then
+			$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$dep"
+			echo "Undeploy $DEPLOY_ORI has been completed without content"
+			deploy_to_wildfly $dep
+		else
+			$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$dep --keep-content"
+			echo "Undeploy $DEPLOY_ORI has been completed with keep content"
+			deploy_to_wildfly $dep
+		fi
+	else
+		echo "cluster "$dep" no matching with deploy "$ARTI_NEW""
+	fi
+	done
+else
+	$CONTROLLER_CONNECT --command="/server-group=*:read-attribute(name=profile)" | grep address | awk -F '"' '{ print $6}' | while read p
+	do
+	DEPLOY="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$p" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}'| sed 's/-[0-9.]*.war$//')"
+	DEPLOY_ORI="$($CONTROLLER_CONNECT --command="deployment-info --server-group=$p" | grep enable | grep "$ARTI_NEW" | awk '{ print $1}')"
+	if [ "$DEPLOY" == "$ARTI_NEW" ] ; then
+		echo "match cluster "$p" with deploy "$ARTI_NEW""
+		echo "start undeploy"
+		if [ "$FORCE_UNDEPLOY" == true ] ; then
+			$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$p"
+			echo "Undeploy $DEPLOY_ORI has been completed without content"
+			deploy_to_wildfly $p
+		else
+			$CONTROLLER_CONNECT --command="undeploy $DEPLOY_ORI --server-groups=$p --keep-content"
+			echo "Undeploy $DEPLOY_ORI has been completed with keep content"
+			deploy_to_wildfly $p
+		fi
+	else
+		echo "cluster "$p" no matching with deploy "$ARTI_NEW""
+	fi
+	done
+fi
+
+}
+
+deploy_to_wildfly () {
+
+echo "Starting deploy "$ARTI_NEW_ori""
+$CONTROLLER_CONNECT --command="deploy "$WDIR"/"$ARTI_NEW_ORI" --server-groups=$1"
+echo "Deploy "$ARTI_NEW_ORI" on cluster "$1" has been completed"
+echo "Delete deploy to stagin dir"
+rm "$WDIR"/"$ARTI_NEW_ORI"
+
+}
+
+LAUNCH_TYPE="$($CONTROLLER_CONNECT --commands="read-attribute launch-type")"
+
+case "$LAUNCH_TYPE" in 
+	"DOMAIN")
+			start_procedure
+            ;;	
+	"STANDALONE")
+			start_procedure_standalone	        
+			;;
+    "*")
+            echo "no launch type compatible. exit"
+            exit 3
+			;;
+esac

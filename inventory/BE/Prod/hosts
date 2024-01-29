@@ -1,0 +1,66 @@
+[sito]
+sito01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.69
+
+[sito-new]
+sito01new-be.farm.ladbrokes-be.local  ansible_host=172.26.22.171
+
+[sito-gioco-new]
+sito-gioco01new-be.farm.ladbrokes-be.local  ansible_host=172.26.22.191
+
+[ssbt]
+sst01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.31
+
+[ssbt-new]
+sst01new-be.farm.ladbrokes-be.local  ansible_host=172.26.22.55
+
+[mobile]
+mobile01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.61
+
+[mobile-new]
+mobile01new-be.farm.ladbrokes-be.local  ansible_host=172.26.22.182
+
+[appbar]
+appbar01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.132
+
+[msaccount-appbar]
+msaccount01-appbar-be.farm.ladbrokes-be.local  ansible_host=172.26.22.146
+
+[msaccount]
+msaccount01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.92
+
+[refactoring]
+mservices01-be.farm.ladbrokes-be.local  ansible_host=172.26.32.90
+
+[euroservice]
+eurservice01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.43
+
+[easy]
+backoffice01-be.farm.ladbrokes-be.local  ansible_host=172.26.32.125
+
+[promozioni]
+wildfly-promo01-be.farm.ladbrokes-be.local  ansible_host=172.26.22.66
+
+[dashboard]
+wildfly-dash01-be.farm.ladbrokes-be.local  ansible_host=172.26.32.87
+
+[virtual:children]
+sito-new
+ssbt
+mobile-new
+
+[wildfly-all:children]
+sito
+sito-new
+sito-gioco-new
+mobile
+mobile-new
+ssbt
+ssbt-new
+appbar
+msaccount-appbar
+msaccount
+euroservice
+refactoring
+easy
+dashboard
+promozioni
